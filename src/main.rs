@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![feature(global_asm)]
 
 use core::panic::PanicInfo;
 
@@ -8,8 +9,9 @@ fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 
-// _start is linked in the linker script as the entry
+global_asm!(include_str!("boot.S"));
+
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
+fn kernel_init() -> ! {
     loop {}
 }

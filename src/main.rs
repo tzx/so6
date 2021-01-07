@@ -11,7 +11,17 @@ fn panic(_info: &PanicInfo) -> ! {
 
 global_asm!(include_str!("boot.S"));
 
+mod uart;
+
 #[no_mangle]
 fn kernel_init() -> ! {
+    let mut uart = uart::Uart::new(0x1000_0000);
+    unsafe {
+        uart.init();
+        let cute = "Hello World!";
+        for c in cute.bytes() {
+            uart.put(c);
+        }
+    }
     loop {}
 }

@@ -1,7 +1,7 @@
 KERNEL = target/riscv64gc-unknown-none-elf/debug/so6
 QEMU = qemu-system-riscv64
 
-all: $(KERNEL)
+kernel: $(KERNEL)
 
 clean:
 	cargo clean

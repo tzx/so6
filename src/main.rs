@@ -3,7 +3,10 @@
 #![feature(global_asm)]
 
 use core::panic::PanicInfo;
-use core::fmt::Write;
+
+// TODO: create lib
+#[macro_use]
+mod macros;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
@@ -18,13 +21,15 @@ static mut UART: PWrapper = PWrapper::new();
 
 #[no_mangle]
 fn kernel_init() -> ! {
-    let mut uart = unsafe {
-        UART.put_uart();
-        UART.take_uart()
-    };
+    {
+        let mut uart = unsafe {
+            UART.put_uart();
+            UART.take_uart()
+        };
 
-    uart.init();
-    let cute = "Hello World!\n";
-    let _ = write!(uart, "{}", cute);
+        uart.init();
+    }
+    let cute = "Hello World!";
+    println!("{}", cute);
     loop {}
 }

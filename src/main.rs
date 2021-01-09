@@ -8,20 +8,24 @@ use core::panic::PanicInfo;
 fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
-
 global_asm!(include_str!("boot.S"));
 
 mod uart;
+use uart::PWrapper;
+
+static mut UART: PWrapper = PWrapper::new();
 
 #[no_mangle]
 fn kernel_init() -> ! {
-    let mut uart = uart::Uart::new(0x1000_0000);
-    unsafe {
-        uart.init();
-        let cute = "Hello World!";
-        for c in cute.bytes() {
-            uart.put(c);
-        }
+    let mut uart = unsafe {
+        UART.put_uart();
+        UART.take_uart()
+    };
+
+    uart.init();
+    let cute = "Hello World!";
+    for c in cute.bytes() {
+        uart.put(c);
     }
     loop {}
 }

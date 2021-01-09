@@ -84,9 +84,30 @@ impl Uart {
         }
     }
 
-    pub fn put(&mut self, c: u8) {
+    fn put(&mut self, c: u8) {
         unsafe {
             self.registers.write_to_transmit(c);
+        }
+    }
+
+    pub fn write(&mut self, buf: &[u8]) {
+        for &c in buf {
+            match c {
+                // Backspace or Del: https://unix.stackexchange.com/questions/414159/behaviour-of-the-backspace-on-terminal
+                8 | 127 => {
+                    self.put(8);
+                    self.put(b' ');
+                    self.put(8);
+                }
+                // Newline or Carriage Return: https://stackoverflow.com/questions/1761051/difference-between-n-and-r
+                10 | 13 => {
+                    self.put(b'\r');
+                    self.put(b'\n');
+                }
+                _ => {
+                    self.put(c);
+                }
+            }
         }
     }
 }

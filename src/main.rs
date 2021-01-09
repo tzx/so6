@@ -24,8 +24,6 @@ fn kernel_init() -> ! {
 
     uart.init();
     let cute = "Hello World!";
-    for c in cute.bytes() {
-        uart.put(c);
-    }
+    uart.write(cute.as_bytes());
     loop {}
 }

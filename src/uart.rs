@@ -1,3 +1,4 @@
+use core::fmt::{Error, Write};
 use core::mem::replace;
 
 // https://www.lammertbies.nl/comm/info/serial-uart
@@ -109,5 +110,12 @@ impl Uart {
                 }
             }
         }
+    }
+}
+
+impl Write for Uart {
+    fn write_str(&mut self, s: &str) -> Result<(), Error> {
+        self.write(s.as_bytes());
+        Ok(())
     }
 }

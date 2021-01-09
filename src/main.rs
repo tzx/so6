@@ -3,6 +3,7 @@
 #![feature(global_asm)]
 
 use core::panic::PanicInfo;
+use core::fmt::Write;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
@@ -23,7 +24,7 @@ fn kernel_init() -> ! {
     };
 
     uart.init();
-    let cute = "Hello World!";
-    uart.write(cute.as_bytes());
+    let cute = "Hello World!\n";
+    let _ = write!(uart, "{}", cute);
     loop {}
 }

@@ -1,9 +1,11 @@
 #[macro_export]
 macro_rules! print {
     ($($args:tt)*) => {{
-        // XXX: Is this really singleton???
         use core::fmt::Write;
-        let mut uart = unsafe { UART.put_uart(); UART.take_uart() }; 
+        use crate::uart;
+
+        let mut wrap = uart::get_uart().lock();
+        let uart = wrap.as_mut().unwrap();
         let _ = write!(uart, $($args)*);
     }};
 }

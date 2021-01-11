@@ -15,21 +15,13 @@ fn panic(_info: &PanicInfo) -> ! {
 global_asm!(include_str!("boot.S"));
 
 mod uart;
-use uart::PWrapper;
-
-static mut UART: PWrapper = PWrapper::new();
 
 #[no_mangle]
 fn kernel_init() -> ! {
-    {
-        let mut uart = unsafe {
-            UART.put_uart();
-            UART.take_uart()
-        };
+    uart::init();
 
-        uart.init();
-    }
     let cute = "Hello World!";
     println!("{}", cute);
+    println!("Goodbye :(");
     loop {}
 }

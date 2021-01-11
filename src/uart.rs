@@ -1,33 +1,16 @@
 use core::fmt::{Error, Write};
-use core::mem::replace;
+use spin::Mutex;
 
-// https://www.lammertbies.nl/comm/info/serial-uart
+/// SAFETY: In QEMU, the UART registers should be initialized always at BASE_ADDR.
+/// We will write to these registers, and accessing the Uart would require a MutexGuard.
 
 const BASE_ADDR: usize = 0x1000_0000;
-
-pub struct PWrapper {
-    uart: Option<Uart>,
-}
-
-impl PWrapper {
-    pub const fn new() -> Self {
-        PWrapper { uart: None }
-    }
-
-    pub fn take_uart(&mut self) -> Uart {
-        let uart = replace(&mut self.uart, None);
-        uart.unwrap()
-    }
-
-    pub fn put_uart(&mut self) {
-        self.uart = Some(Uart::new());
-    }
-}
 
 pub struct Uart {
     registers: &'static mut Registers,
 }
 
+// https://www.lammertbies.nl/comm/info/serial-uart
 #[repr(C)]
 struct Registers {
     data: u8,
@@ -40,7 +23,7 @@ struct Registers {
     scr: u8,
 }
 
-fn get_uart() -> &'static mut Registers {
+fn get_registers() -> &'static mut Registers {
     unsafe { &mut *(BASE_ADDR as *mut Registers) }
 }
 
@@ -75,11 +58,11 @@ impl Registers {
 impl Uart {
     fn new() -> Self {
         Uart {
-            registers: get_uart(),
+            registers: get_registers(),
         }
     }
 
-    pub fn init(&mut self) {
+    fn init(&mut self) {
         unsafe {
             self.registers.init();
         }
@@ -118,4 +101,19 @@ impl Write for Uart {
         self.write(s.as_bytes());
         Ok(())
     }
+}
+
+// No need for Arc, because static will prevail
+static UART: Mutex<Option<Uart>> = Mutex::new(None);
+
+pub fn get_uart() -> &'static Mutex<Option<Uart>> {
+    &UART
+}
+
+pub fn init() {
+    let mut inner = Uart::new();
+    inner.init();
+
+    let mut uart = get_uart().lock();
+    *uart = Some(inner);
 }

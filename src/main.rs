@@ -10,6 +10,7 @@ mod macros;
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
+    println!("That's a panic dood: {}", _info);
     loop {}
 }
 global_asm!(include_str!("boot.S"));
@@ -23,5 +24,5 @@ fn kernel_init() -> ! {
     let cute = "Hello World!";
     println!("{}", cute);
     println!("Goodbye :(");
-    loop {}
+    panic!("Nothing else to do so I am panicking");
 }

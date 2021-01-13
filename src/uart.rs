@@ -1,5 +1,6 @@
 use core::fmt::{Error, Write};
 use spin::Mutex;
+use lazy_static::lazy_static;
 
 /// SAFETY: In QEMU, the UART registers should be initialized always at BASE_ADDR.
 /// We will write to these registers, and accessing the Uart would require a MutexGuard.
@@ -103,17 +104,11 @@ impl Write for Uart {
     }
 }
 
-// No need for Arc, because static will prevail
-static UART: Mutex<Option<Uart>> = Mutex::new(None);
-
-pub fn get_uart() -> &'static Mutex<Option<Uart>> {
-    &UART
+lazy_static! {
+    pub static ref UART: Mutex<Uart> = Mutex::new(Uart::new());
 }
 
 pub fn init() {
-    let mut inner = Uart::new();
-    inner.init();
-
-    let mut uart = get_uart().lock();
-    *uart = Some(inner);
+    let mut uart = UART.lock();
+    uart.init();
 }

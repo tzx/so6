@@ -4,9 +4,8 @@ macro_rules! print {
         use core::fmt::Write;
         use crate::uart;
 
-        let mut wrap = uart::get_uart().lock();
-        let uart = wrap.as_mut().unwrap();
-        let _ = write!(uart, $($args)*);
+        let mut uart = uart::UART.lock();
+        write!(uart, $($args)*).unwrap();
     }};
 }
 

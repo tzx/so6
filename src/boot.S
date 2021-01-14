@@ -22,7 +22,7 @@ _start:
     la		gp, _global_pointer
 .option pop
     # Set stack
-    la     sp, _stack
+    la     sp, _stack_end
     # Enable interrupts
     li		t0, (0b11 << 11) | (1 << 7) | (1 << 3)
     csrw	mstatus, t0

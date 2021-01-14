@@ -32,6 +32,10 @@ SECTIONS
         bss_end = .;
     }
 
-    /* Set stack to the top of RAM at 128M */
-    PROVIDE(_stack = 0x88000000);
+    PROVIDE(_stack_start = bss_end);
+    /* Stack size of 4kB */
+    PROVIDE(_stack_end = _stack_start + 0x4000);
+
+    PROVIDE(_heap_start = _stack_end);
+    PROVIDE(_PHYSTOP = 0x88000000);
 }

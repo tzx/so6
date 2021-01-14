@@ -16,6 +16,7 @@ fn panic(_info: &PanicInfo) -> ! {
 global_asm!(include_str!("boot.S"));
 
 mod uart;
+mod allocator;
 
 #[no_mangle]
 fn kernel_init() -> ! {

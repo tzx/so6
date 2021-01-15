@@ -1,4 +1,5 @@
 use spin::Mutex;
+use bitflags::bitflags;
 
 static FRAME_ALLOCATOR: LLAllocator = LLAllocator::new(ListNode::new());
 
@@ -62,5 +63,70 @@ impl Allocator for LLAllocator {
         let mut node = unsafe {&mut *(ptr as *mut ListNode)};
         node.next = head_ptr.next;
         head_ptr.next = Some(node);
+    }
+}
+
+// MMU: Table and Entries
+bitflags! {
+    struct PageTableFlags: u64 {
+        const NONE = 0;
+        const VALID = 1 << 0;
+        const READ = 1 << 1;
+        const WRITE = 1 << 2;
+        const EXECUTE = 1 << 3;
+        const USER = 1 << 4;
+        const GLOBAL = 1 << 5;
+        const ACCESS = 1 << 6;
+        const DIRTY = 1 << 7;
+    }
+}
+
+const NUM_PAGE_ENTRIES: usize = 512;
+const PAGE_SIZE: u64 = 4096;
+
+#[derive(Clone, Copy)]
+struct PageTableEntry {
+    entry: u64,
+}
+
+impl PageTableEntry {
+    fn new() -> Self {
+        PageTableEntry {
+            entry: 0,
+        }
+    }
+
+    fn get_flags(&self) -> PageTableFlags {
+        PageTableFlags::from_bits_truncate(self.entry)
+    }
+
+    fn set_flags(&mut self, flags: PageTableFlags) {
+        self.entry = self.entry | flags.bits();
+    }
+
+    fn get_phy_addr(&self) -> u64 {
+        self.get_ppn() << 12
+    }
+
+    fn get_ppn(&self) -> u64 {
+        self.entry >> 10
+    }
+
+    fn set_ppn(&mut self, paddr: u64) {
+        assert_eq!(paddr % PAGE_SIZE, 0, "paddr must be page-aligned");
+        self.entry = paddr | self.get_flags().bits();
+    }
+}
+
+struct PageTable {
+    entries: [PageTableEntry; NUM_PAGE_ENTRIES],
+}
+
+impl PageTable {
+    fn new() -> Self {
+        let empty = PageTableEntry::new();
+        PageTable {
+            entries: [empty; NUM_PAGE_ENTRIES],
+        }
     }
 }

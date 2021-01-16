@@ -1,7 +1,24 @@
 use spin::Mutex;
 use bitflags::bitflags;
 
-static FRAME_ALLOCATOR: LLAllocator = LLAllocator::new(ListNode::new());
+pub static FRAME_ALLOCATOR: LLAllocator = LLAllocator::new(ListNode::new());
+
+extern "C" {
+    // Starting bytes for each section in the linker script
+    // We can get the address by & and then cast (as *const _ as usize)
+    static _HEAP_START: u8;
+    static _PHYSTOP: u8;
+}
+
+/// Align address down to PAGE_SIZE
+fn align_down(addr: usize) -> usize {
+    addr & !(PAGE_SIZE - 1)
+}
+
+/// Align address up to PAGE_SIZE
+fn align_up(addr: usize) -> usize {
+    align_down(addr + PAGE_SIZE - 1)
+}
 
 trait Allocator {
     fn alloc(&self) -> *mut u8;
@@ -13,7 +30,7 @@ struct ListNode {
     next: Option<&'static ListNode>,
 }
 
-struct LLAllocator {
+pub struct LLAllocator {
     inner: Mutex<ListNode>,
 }
 
@@ -40,8 +57,22 @@ impl LLAllocator {
         self.inner.lock()
     }
 
-    fn init(&self, start: usize, end: usize) {
-        todo!();
+    pub fn init(&self) {
+        // Assumes that the areas are not being used (which it shouldn't)
+        unsafe {
+            let head_ptr = self.lock();
+            assert!(head_ptr.next.is_none());
+            drop(head_ptr);
+
+            let start = & _HEAP_START as *const _ as usize;
+            let end = & _PHYSTOP as *const _ as usize;
+
+            let page_addr_start = align_up(start);
+            for page_addr in (page_addr_start..end).step_by(PAGE_SIZE) {
+                let ptr = page_addr as *mut u8;
+                self.dealloc(ptr);
+            }
+        }
     }
 }
 
@@ -68,7 +99,7 @@ impl Allocator for LLAllocator {
 
 // MMU: Table and Entries
 bitflags! {
-    struct PageTableFlags: u64 {
+    struct PageTableFlags: usize {
         const NONE = 0;
         const VALID = 1 << 0;
         const READ = 1 << 1;
@@ -82,15 +113,14 @@ bitflags! {
 }
 
 const NUM_PAGE_ENTRIES: usize = 512;
-const PAGE_SIZE: u64 = 4096;
+const PAGE_SIZE: usize = 4096;
 
-#[derive(Clone, Copy)]
 struct PageTableEntry {
-    entry: u64,
+    entry: usize,
 }
 
 impl PageTableEntry {
-    fn new() -> Self {
+    const fn new() -> Self {
         PageTableEntry {
             entry: 0,
         }
@@ -104,15 +134,15 @@ impl PageTableEntry {
         self.entry = self.entry | flags.bits();
     }
 
-    fn get_phy_addr(&self) -> u64 {
+    fn get_phy_addr(&self) -> usize {
         self.get_ppn() << 12
     }
 
-    fn get_ppn(&self) -> u64 {
+    fn get_ppn(&self) -> usize {
         self.entry >> 10
     }
 
-    fn set_ppn(&mut self, paddr: u64) {
+    fn set_ppn(&mut self, paddr: usize) {
         assert_eq!(paddr % PAGE_SIZE, 0, "paddr must be page-aligned");
         self.entry = paddr | self.get_flags().bits();
     }
@@ -124,9 +154,10 @@ struct PageTable {
 
 impl PageTable {
     fn new() -> Self {
-        let empty = PageTableEntry::new();
+        // const so it's inline for the array
+        const EMPTY: PageTableEntry = PageTableEntry::new();
         PageTable {
-            entries: [empty; NUM_PAGE_ENTRIES],
+            entries: [EMPTY; NUM_PAGE_ENTRIES],
         }
     }
 }

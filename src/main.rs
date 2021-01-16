@@ -17,10 +17,12 @@ global_asm!(include_str!("boot.S"));
 
 mod uart;
 mod allocator;
+use allocator::FRAME_ALLOCATOR;
 
 #[no_mangle]
 fn kernel_init() -> ! {
     uart::init();
+    FRAME_ALLOCATOR.init();
 
     let cute = "Hello World!";
     println!("{}", cute);

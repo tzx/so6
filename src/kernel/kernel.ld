@@ -36,6 +36,6 @@ SECTIONS
     /* Stack size of 4kB */
     PROVIDE(_stack_end = _stack_start + 0x4000);
 
-    PROVIDE(_heap_start = _stack_end);
+    PROVIDE(_HEAP_START = _stack_end);
     PROVIDE(_PHYSTOP = 0x88000000);
 }
